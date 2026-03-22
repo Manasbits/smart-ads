@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-auth";
-import { getSessionForUser } from "@/lib/composio/client";
+import { initiateOAuthConnection } from "@/lib/composio/client";
 
 const VALID_TOOLKITS = ["METAADS", "SHOPIFY"] as const;
 type ValidToolkit = (typeof VALID_TOOLKITS)[number];
@@ -31,12 +31,14 @@ export const POST = withAuth(async (req, { userId }) => {
 
     const safeTo = isValidFromPath(from) ? from : "/settings";
 
-    const session = await getSessionForUser(userId);
-
     const appOrigin = new URL(req.url).origin;
     const callbackUrl = `${appOrigin}/auth/callback?toolkit=${toolkit}&from=${encodeURIComponent(safeTo)}`;
 
-    const connectionRequest = await session.authorize(toolkit, { callbackUrl });
+    const connectionRequest = await initiateOAuthConnection(
+      userId,
+      toolkit,
+      callbackUrl
+    );
 
     if (!connectionRequest.redirectUrl) {
       console.error("[connect] No redirectUrl returned from Composio", {
@@ -52,9 +54,12 @@ export const POST = withAuth(async (req, { userId }) => {
     return NextResponse.json({ redirectUrl: connectionRequest.redirectUrl });
   } catch (error) {
     console.error("[connect] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to initiate connection" },
-      { status: 500 }
-    );
+
+    const message =
+      error instanceof Error && error.message.includes("OAuth auth config")
+        ? error.message
+        : "Failed to initiate connection";
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 });

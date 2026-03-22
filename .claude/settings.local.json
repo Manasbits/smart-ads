@@ -42,7 +42,10 @@
       "Bash(find E:/Work/smartAds/node_modules/@composio -name *.d.ts -o -name *.d.mts)",
       "Bash(ls:*)",
       "Bash(ls \"E:/Work/smartAds/src/app/\\(auth\\)/\")",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(xargs grep:*)",
+      "Bash(xargs wc:*)",
+      "Bash(find /e/Work/smartAds -maxdepth 1 -type f \\\\\\(-name *.config.* -o -name *.json -o -name next.config.* \\\\\\))"
     ]
   }
 }

@@ -78,7 +78,14 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          By signing in, you agree to our Terms of Service
+          By signing in, you agree to our{" "}
+          <a href="/terms" className="underline hover:text-foreground transition-colors">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" className="underline hover:text-foreground transition-colors">
+            Privacy Policy
+          </a>
         </p>
       </div>
     </div>

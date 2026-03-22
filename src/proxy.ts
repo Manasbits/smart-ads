@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth", "/auth/callback"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/auth/callback", "/privacy", "/terms"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -14,6 +14,11 @@ export function proxy(req: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.includes(".")
   ) {
+    return NextResponse.next();
+  }
+
+  // Allow the landing page (exact root path)
+  if (pathname === "/") {
     return NextResponse.next();
   }
 
