@@ -1,24 +1,19 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import { useChat } from "ai/react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useAuthContext } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/stores/ui-store";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
 import { AccountSelector } from "@/components/chat/account-selector";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Zap, BarChart3, ShoppingBag, TrendingUp } from "lucide-react";
 import type { ConnectedAccount } from "@/types";
 
 interface ChatAreaProps {
   conversationId?: string;
   connectedAccounts: ConnectedAccount[];
-  initialMessages?: Array<{
-    id: string;
-    role: "user" | "assistant";
-    content: string;
-  }>;
 }
 
 const SUGGESTIONS = [
@@ -39,35 +34,41 @@ const SUGGESTIONS = [
 export function ChatArea({
   conversationId,
   connectedAccounts,
-  initialMessages,
 }: ChatAreaProps) {
   const { user } = useAuthContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState("");
 
   const activeWorkspaceId = useUIStore((s) => s.activeWorkspaceId);
   const activeMetaAdsAccountId = useUIStore((s) => s.activeMetaAdsAccountId);
   const activeShopifyStoreId = useUIStore((s) => s.activeShopifyStoreId);
 
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: {
+          conversationId,
+          workspaceId: activeWorkspaceId,
+          activeAccounts: {
+            metaAdsAccountId: activeMetaAdsAccountId,
+            shopifyStoreId: activeShopifyStoreId,
+          },
+        },
+      }),
+    [conversationId, activeWorkspaceId, activeMetaAdsAccountId, activeShopifyStoreId]
+  );
+
   const {
     messages,
-    input,
-    setInput,
-    handleSubmit,
-    isLoading,
-    append,
+    sendMessage,
+    status,
   } = useChat({
-    api: "/api/chat",
     id: conversationId,
-    initialMessages,
-    body: {
-      conversationId,
-      workspaceId: activeWorkspaceId,
-      activeAccounts: {
-        metaAdsAccountId: activeMetaAdsAccountId,
-        shopifyStoreId: activeShopifyStoreId,
-      },
-    },
+    transport,
   });
+
+  const isLoading = status === "submitted" || status === "streaming";
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -78,12 +79,13 @@ export function ChatArea({
   }, [messages]);
 
   const handleSuggestionClick = (text: string) => {
-    append({ role: "user", content: text });
+    sendMessage({ text });
   };
 
   const onSubmit = () => {
     if (!input.trim() || isLoading) return;
-    handleSubmit();
+    sendMessage({ text: input });
+    setInput("");
   };
 
   return (
@@ -133,13 +135,7 @@ export function ChatArea({
               <ChatMessage
                 key={message.id}
                 role={message.role as "user" | "assistant"}
-                content={message.content}
-                toolInvocations={message.toolInvocations?.map((t) => ({
-                  toolName: t.toolName,
-                  args: t.args as Record<string, unknown>,
-                  result: "result" in t ? t.result : undefined,
-                  state: t.state as "call" | "partial-call" | "result",
-                }))}
+                parts={message.parts}
                 userPhotoURL={
                   message.role === "user"
                     ? user?.photoURL || undefined

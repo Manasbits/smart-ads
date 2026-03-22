@@ -36,7 +36,17 @@ function groupConversations(conversations: Conversation[]) {
   ];
 
   for (const conv of conversations) {
-    const date = conv.updatedAt?.toDate?.() ?? new Date(0);
+    // updatedAt can be a Firestore Timestamp, ISO string, or epoch
+    const raw = conv.updatedAt;
+    const date = raw
+      ? typeof raw === "string"
+        ? new Date(raw)
+        : typeof raw === "object" && "_seconds" in raw
+          ? new Date((raw as { _seconds: number })._seconds * 1000)
+          : raw?.toDate?.()
+            ? raw.toDate()
+            : new Date(0)
+      : new Date(0);
     if (date >= today) groups[0].items.push(conv);
     else if (date >= yesterday) groups[1].items.push(conv);
     else if (date >= weekAgo) groups[2].items.push(conv);

@@ -7,26 +7,32 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Zap, User } from "lucide-react";
 import type { ComponentPropsWithoutRef } from "react";
+import type { UIMessage } from "ai";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
-  content: string;
-  toolInvocations?: Array<{
-    toolName: string;
-    args: Record<string, unknown>;
-    result?: unknown;
-    state: "call" | "partial-call" | "result";
-  }>;
+  parts: UIMessage["parts"];
   userPhotoURL?: string;
 }
 
 export function ChatMessage({
   role,
-  content,
-  toolInvocations,
+  parts,
   userPhotoURL,
 }: ChatMessageProps) {
   const isUser = role === "user";
+
+  // Extract text content from parts
+  const textContent = parts
+    .filter((p): p is Extract<typeof p, { type: "text" }> => p.type === "text")
+    .map((p) => p.text)
+    .join("");
+
+  // Extract tool invocations from parts (dynamic-tool type)
+  const toolParts = parts.filter(
+    (p): p is Extract<typeof p, { type: "dynamic-tool" }> =>
+      p.type === "dynamic-tool"
+  );
 
   return (
     <div
@@ -50,66 +56,89 @@ export function ChatMessage({
         )}
       >
         {/* Tool invocations — shown before assistant text */}
-        {!isUser && toolInvocations && toolInvocations.length > 0 && (
+        {!isUser && toolParts.length > 0 && (
           <div className="mb-2">
-            {toolInvocations.map((tool, i) => (
+            {toolParts.map((tool) => (
               <ToolActivity
-                key={`${tool.toolName}-${i}`}
+                key={tool.toolCallId}
                 toolName={tool.toolName}
-                args={tool.args}
-                result={tool.result}
-                state={tool.state}
+                args={
+                  tool.state === "input-streaming"
+                    ? {}
+                    : (tool.input as Record<string, unknown>) ?? {}
+                }
+                result={
+                  tool.state === "output-available"
+                    ? tool.output
+                    : undefined
+                }
+                state={
+                  tool.state === "output-available"
+                    ? "result"
+                    : tool.state === "input-available"
+                      ? "call"
+                      : "partial-call"
+                }
               />
             ))}
           </div>
         )}
 
         {/* Message content */}
-        <div
-          className={cn(
-            "rounded-2xl text-sm leading-relaxed",
-            isUser
-              ? "bg-primary text-primary-foreground px-4 py-2.5"
-              : "text-foreground"
-          )}
-        >
-          {isUser ? (
-            <p className="whitespace-pre-wrap">{content}</p>
-          ) : (
-            <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-th:text-left prose-table:border prose-table:border-border prose-td:border prose-td:border-border prose-th:border prose-th:border-border prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-a:text-blue-400">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  pre: ({ children, ...props }: ComponentPropsWithoutRef<"pre">) => (
-                    <pre
-                      className="rounded-lg bg-muted/50 border border-border p-3 overflow-x-auto"
-                      {...props}
-                    >
-                      {children}
-                    </pre>
-                  ),
-                  code: ({ children, className, ...props }: ComponentPropsWithoutRef<"code">) => {
-                    const isInline = !className;
-                    return isInline ? (
-                      <code
-                        className="rounded bg-muted/50 px-1.5 py-0.5 text-xs"
+        {textContent && (
+          <div
+            className={cn(
+              "rounded-2xl text-sm leading-relaxed",
+              isUser
+                ? "bg-primary text-primary-foreground px-4 py-2.5"
+                : "text-foreground"
+            )}
+          >
+            {isUser ? (
+              <p className="whitespace-pre-wrap">{textContent}</p>
+            ) : (
+              <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-th:text-left prose-table:border prose-table:border-border prose-td:border prose-td:border-border prose-th:border prose-th:border-border prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-a:text-blue-400">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    pre: ({
+                      children,
+                      ...props
+                    }: ComponentPropsWithoutRef<"pre">) => (
+                      <pre
+                        className="rounded-lg bg-muted/50 border border-border p-3 overflow-x-auto"
                         {...props}
                       >
                         {children}
-                      </code>
-                    ) : (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                }}
-              >
-                {content}
-              </ReactMarkdown>
-            </div>
-          )}
-        </div>
+                      </pre>
+                    ),
+                    code: ({
+                      children,
+                      className,
+                      ...props
+                    }: ComponentPropsWithoutRef<"code">) => {
+                      const isInline = !className;
+                      return isInline ? (
+                        <code
+                          className="rounded bg-muted/50 px-1.5 py-0.5 text-xs"
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      ) : (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {textContent}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {isUser && (

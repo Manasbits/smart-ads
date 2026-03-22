@@ -1,7 +1,7 @@
 import { Composio } from "@composio/core";
 import { VercelProvider } from "@composio/vercel";
 
-let composioInstance: Composio | null = null;
+let composioInstance: Composio<VercelProvider> | null = null;
 
 function getComposio() {
   if (!composioInstance) {

@@ -27,7 +27,7 @@ export async function extractAndSaveMemories(params: {
     const { text } = await generateText({
       model: getModel(),
       prompt: `${EXTRACTION_PROMPT}\n\nUser: ${params.userMessage}\nAssistant: ${params.assistantMessage}`,
-      maxTokens: 500,
+      maxOutputTokens: 500,
     });
 
     // Strip markdown code fences if present

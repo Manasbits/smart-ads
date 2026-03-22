@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-auth";
 import {
@@ -17,7 +19,14 @@ export const GET = withAuth(async (req, { userId }) => {
     limit
   );
 
-  return NextResponse.json({ conversations });
+  // Serialize Firestore Timestamps to ISO strings
+  const serialized = conversations.map((c) => ({
+    ...c,
+    createdAt: c.createdAt?.toDate?.().toISOString() ?? null,
+    updatedAt: c.updatedAt?.toDate?.().toISOString() ?? null,
+  }));
+
+  return NextResponse.json({ conversations: serialized });
 });
 
 export const POST = withAuth(async (req, { userId }) => {

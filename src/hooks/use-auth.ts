@@ -21,6 +21,10 @@ export function useAuth() {
   });
 
   useEffect(() => {
+    if (!auth) {
+      setState({ user: null, loading: false });
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setState({ user, loading: false });
     });
@@ -28,6 +32,7 @@ export function useAuth() {
   }, []);
 
   const signIn = useCallback(async () => {
+    if (!auth) throw new Error("Firebase not initialized");
     const result = await signInWithPopup(auth, googleProvider);
     const idToken = await result.user.getIdToken();
 
@@ -43,7 +48,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     await fetch("/api/auth/signout", { method: "POST" });
-    await firebaseSignOut(auth);
+    if (auth) await firebaseSignOut(auth);
   }, []);
 
   return { ...state, signIn, signOut };

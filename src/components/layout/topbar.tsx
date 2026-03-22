@@ -61,16 +61,18 @@ export function Topbar({ workspaces }: TopbarProps) {
 
         {/* Workspace selector */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="gap-2 text-sm text-muted-foreground hover:text-foreground h-8"
-            >
-              <Layers className="h-4 w-4" />
-              {activeWorkspace?.name || "All Workspaces"}
-              <ChevronDown className="h-3 w-3 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                className="gap-2 text-sm text-muted-foreground hover:text-foreground h-8"
+              >
+                <Layers className="h-4 w-4" />
+                {activeWorkspace?.name || "All Workspaces"}
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            }
+          />
           <DropdownMenuContent align="start" className="w-52">
             <DropdownMenuItem onClick={() => setActiveWorkspaceId(null)}>
               All Workspaces

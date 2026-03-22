@@ -19,7 +19,20 @@
       "Bash(rm -rf node_modules)",
       "Bash(pnpm store:*)",
       "Bash(pnpm add:*)",
-      "Bash(pnpm dlx:*)"
+      "Bash(pnpm dlx:*)",
+      "Bash(node -e \"const c = require\\(''''@composio/core''''\\); console.log\\(Object.keys\\(c\\)\\)\")",
+      "Bash(node -e \"const c = require\\(''@composio/core''\\); console.log\\(Object.keys\\(c\\).filter\\(k => k === ''Composio'' || k.includes\\(''Composio''\\) || k === ''default''\\)\\)\")",
+      "Bash(node -e \"const v = require\\(''@composio/vercel''\\); console.log\\(Object.keys\\(v\\)\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(pnpm build:*)",
+      "Bash(node -e \"const ai = require\\(''ai''\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.includes\\(''Chat''\\) || k.includes\\(''chat''\\)\\)\\)\")",
+      "Bash(node -e \"const ai = require\\(''@ai-sdk/react''\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.includes\\(''Chat''\\) || k.includes\\(''chat''\\)\\)\\)\")",
+      "Bash(node -e \"const ai = require\\(''ai''\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.includes\\(''Message''\\) || k.includes\\(''convert''\\)\\)\\)\")",
+      "Bash(node -e \"const ai = require\\(''ai''\\); console.log\\(Object.keys\\(ai\\).filter\\(k => k.includes\\(''stream''\\) || k.includes\\(''Stream''\\) || k.includes\\(''Response''\\)\\)\\)\")",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm run:*)",
+      "Bash(timeout 10 pnpm dev)"
     ]
   }
 }
