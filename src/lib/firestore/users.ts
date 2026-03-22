@@ -1,5 +1,6 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
+import type { UserConnectedAccount } from "@/types";
 
 const usersRef = () => adminDb.collection("users");
 
@@ -38,4 +39,47 @@ export async function updateUserSettings(
   settings: Record<string, unknown>
 ) {
   await usersRef().doc(userId).update({ settings });
+}
+
+export async function addConnectedAccount(
+  userId: string,
+  account: Omit<UserConnectedAccount, "connectedAt">
+) {
+  const doc = await usersRef().doc(userId).get();
+  const existing = (doc.data()?.connectedAccounts ?? []) as UserConnectedAccount[];
+
+  // Deduplicate — skip if same composioConnectionId already exists
+  if (existing.some((a) => a.composioConnectionId === account.composioConnectionId)) {
+    return;
+  }
+
+  const updated = [
+    ...existing,
+    { ...account, connectedAt: Timestamp.now() },
+  ];
+  await usersRef().doc(userId).update({ connectedAccounts: updated });
+}
+
+export async function removeConnectedAccount(
+  userId: string,
+  composioConnectionId: string
+) {
+  const doc = await usersRef().doc(userId).get();
+  if (!doc.exists) return;
+
+  const data = doc.data();
+  const accounts = (data?.connectedAccounts ?? []) as UserConnectedAccount[];
+  const updated = accounts.filter(
+    (a) => a.composioConnectionId !== composioConnectionId
+  );
+
+  await usersRef().doc(userId).update({ connectedAccounts: updated });
+}
+
+export async function getConnectedAccounts(
+  userId: string
+): Promise<UserConnectedAccount[]> {
+  const doc = await usersRef().doc(userId).get();
+  if (!doc.exists) return [];
+  return (doc.data()?.connectedAccounts ?? []) as UserConnectedAccount[];
 }
