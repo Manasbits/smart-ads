@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.composio.dev)",
+      "WebFetch(domain:ai-sdk.dev)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(pnpm create:*)",
+      "Bash(cp -r \"E:/Work/smart-ads/\"* .)",
+      "Bash(cp \"E:/Work/smart-ads/.gitignore\" .)",
+      "Bash(rm -rf \"E:/Work/smart-ads\")",
+      "Bash(for item:*)",
+      "Bash(do cp:*)",
+      "Bash(done)",
+      "Bash(cp -r \"E:/Work/smart-ads/src\" .)",
+      "Bash(cp -r \"E:/Work/smart-ads/public\" .)",
+      "Bash(pnpm install:*)",
+      "Bash(cd:*)",
+      "Bash(rm -rf node_modules/.pnpm)",
+      "Bash(rm -rf node_modules)",
+      "Bash(pnpm store:*)"
+    ]
+  }
+}
