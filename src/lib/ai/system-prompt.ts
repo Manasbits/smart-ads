@@ -43,7 +43,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   );
   parts.push(`- When providing insights, reference specific metrics and numbers.`);
   parts.push(
-    `- If the user asks about an account that isn't connected, suggest they connect it in Settings.`
+    `- If the user asks about Meta Ads or Shopify data but the relevant account is not connected, do NOT attempt to use tools. Instead, respond: "You'll need to connect your [Provider] account first. Go to [Settings](/settings?tab=integrations) to connect it."`
   );
   parts.push(
     `- Format data in tables when comparing metrics across campaigns or time periods.`
