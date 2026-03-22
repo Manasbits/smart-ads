@@ -16,14 +16,11 @@ export function getModel() {
   return openrouter(modelId, {
     extraBody: {
       reasoning: {
-        // Override global reasoning budget for this model call.
         max_tokens: 15000,
       },
       provider: {
         order: ["amazon-bedrock"],
-        allow_fallbacks: false,
         data_collection: "deny",
-        zdr: true,
       },
     },
   });

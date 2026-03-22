@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useChat, type UseChatOptions } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { useAuthContext } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/stores/ui-store";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
 import { AccountSelector } from "@/components/chat/account-selector";
-import { Zap, BarChart3, ShoppingBag, TrendingUp } from "lucide-react";
+import { Zap, BarChart3, ShoppingBag, TrendingUp, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { ConnectedAccount } from "@/types";
 
 interface ChatAreaProps {
@@ -17,27 +18,17 @@ interface ChatAreaProps {
 }
 
 const SUGGESTIONS = [
-  {
-    icon: BarChart3,
-    text: "How are my Meta Ads performing this week?",
-  },
-  {
-    icon: ShoppingBag,
-    text: "Show me top-selling products on Shopify",
-  },
-  {
-    icon: TrendingUp,
-    text: "Compare ROAS across my campaigns",
-  },
+  { icon: BarChart3, text: "How are my Meta Ads performing this week?" },
+  { icon: ShoppingBag, text: "Show me top-selling products on Shopify" },
+  { icon: TrendingUp, text: "Compare ROAS across my campaigns" },
 ];
 
-export function ChatArea({
-  conversationId,
-  connectedAccounts,
-}: ChatAreaProps) {
+export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
   const { user } = useAuthContext();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const historyLoadedFor = useRef<string | undefined>(undefined);
 
   const activeWorkspaceId = useUIStore((s) => s.activeWorkspaceId);
   const activeMetaAdsAccountId = useUIStore((s) => s.activeMetaAdsAccountId);
@@ -47,6 +38,7 @@ export function ChatArea({
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
+        credentials: "include",
         body: {
           conversationId,
           workspaceId: activeWorkspaceId,
@@ -56,27 +48,75 @@ export function ChatArea({
           },
         },
       }),
-    [conversationId, activeWorkspaceId, activeMetaAdsAccountId, activeShopifyStoreId]
+    [
+      conversationId,
+      activeWorkspaceId,
+      activeMetaAdsAccountId,
+      activeShopifyStoreId,
+    ]
   );
 
-  const {
-    messages,
-    sendMessage,
-    status,
-  } = useChat({
-    id: conversationId,
-    transport,
-  });
+  const chatOptions: UseChatOptions<UIMessage> = useMemo(
+    () => ({
+      id: conversationId ?? "new",
+      transport,
+      onError: (err: Error) => {
+        console.error("[chat] Client error:", err);
+        toast.error(err.message || "Chat request failed");
+      },
+    }),
+    [conversationId, transport]
+  );
+
+  const { messages, sendMessage, status, setMessages } = useChat(chatOptions);
+
+  // Load past messages when opening an existing conversation
+  useEffect(() => {
+    if (!conversationId || historyLoadedFor.current === conversationId) return;
+
+    let cancelled = false;
+    setLoadingHistory(true);
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/conversations/${conversationId}/messages`,
+          { credentials: "include" }
+        );
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled) return;
+
+        const uiMessages: UIMessage[] = (data.messages ?? []).map(
+          (m: { id: string; role: string; content: string }, i: number) => ({
+            id: m.id || `history-${i}`,
+            role: m.role as "user" | "assistant",
+            parts: [{ type: "text" as const, text: m.content || "" }],
+          })
+        );
+        setMessages(uiMessages);
+        historyLoadedFor.current = conversationId;
+      } catch {
+        // Non-critical — chat will work without history
+      } finally {
+        if (!cancelled) setLoadingHistory(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [conversationId, setMessages]);
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
-      const el = scrollRef.current;
-      el.scrollTop = el.scrollHeight;
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const handleSuggestionClick = (text: string) => {
     sendMessage({ text });
@@ -88,15 +128,23 @@ export function ChatArea({
     setInput("");
   };
 
+  if (loadingHistory) {
+    return (
+      <div className="flex flex-col h-full">
+        <AccountSelector connectedAccounts={connectedAccounts} />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Account selector */}
       <AccountSelector connectedAccounts={connectedAccounts} />
 
-      {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          /* Empty state */
           <div className="flex flex-col items-center justify-center h-full px-4">
             <div className="max-w-lg w-full space-y-8 text-center">
               <div className="space-y-3">
@@ -129,7 +177,6 @@ export function ChatArea({
             </div>
           </div>
         ) : (
-          /* Messages */
           <div className="max-w-3xl mx-auto py-4">
             {messages.map((message) => (
               <ChatMessage
@@ -147,7 +194,6 @@ export function ChatArea({
         )}
       </div>
 
-      {/* Input area */}
       <div className="max-w-3xl mx-auto w-full">
         <ChatInput
           value={input}

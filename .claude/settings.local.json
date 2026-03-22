@@ -32,7 +32,17 @@
       "Bash(node:*)",
       "Bash(npx tsc:*)",
       "Bash(pnpm run:*)",
-      "Bash(timeout 10 pnpm dev)"
+      "Bash(timeout 10 pnpm dev)",
+      "Bash(git -C /e/Work/smartAds log --oneline --all -- \"*middleware*\")",
+      "Bash(git -C /e/Work/smartAds show HEAD:src/middleware.ts)",
+      "Bash(curl -sL https://docs.composio.dev/toolkits/metaads)",
+      "Bash(curl -sL https://docs.composio.dev/patterns/auth/your-auth/oauth2)",
+      "Bash(curl -sL https://docs.composio.dev/patterns/auth/default-auth)",
+      "Bash(curl -sL https://docs.composio.dev/introduction/foundations/components/integrations)",
+      "Bash(find E:/Work/smartAds/node_modules/@composio -name *.d.ts -o -name *.d.mts)",
+      "Bash(ls:*)",
+      "Bash(ls \"E:/Work/smartAds/src/app/\\(auth\\)/\")",
+      "Bash(npx next:*)"
     ]
   }
 }

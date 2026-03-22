@@ -21,7 +21,7 @@ export function Topbar({ workspaces }: TopbarProps) {
   const {
     sidebarOpen,
     toggleSidebar,
-    setSidebarOpen,
+    setMobileNavOpen,
     activeWorkspaceId,
     setActiveWorkspaceId,
   } = useUIStore();
@@ -38,7 +38,7 @@ export function Topbar({ workspaces }: TopbarProps) {
           onClick={() => {
             // On mobile, open the sheet
             if (window.innerWidth < 768) {
-              setSidebarOpen(true);
+              setMobileNavOpen(true);
             } else {
               toggleSidebar();
             }

@@ -192,7 +192,8 @@ function SidebarContent({
 }
 
 export function Sidebar(props: SidebarProps) {
-  const { sidebarOpen, setSidebarOpen, toggleSidebar } = useUIStore();
+  const { sidebarOpen, mobileNavOpen, setMobileNavOpen, toggleSidebar } =
+    useUIStore();
 
   return (
     <>
@@ -228,7 +229,7 @@ export function Sidebar(props: SidebarProps) {
       </aside>
 
       {/* Mobile drawer */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetContent side="left" className="w-[280px] p-0 bg-sidebar md:hidden">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <div className="flex items-center p-3 h-14">

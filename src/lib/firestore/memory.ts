@@ -56,11 +56,33 @@ export async function getMemories(
 
   query = query.orderBy("updatedAt", "desc").limit(limit);
 
-  const snapshot = await query.get();
-
-  return snapshot.docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() }) as Memory & { id: string }
-  );
+  try {
+    const snapshot = await query.get();
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as Memory & { id: string }
+    );
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code: unknown }).code === "number"
+        ? (error as { code: number }).code
+        : undefined;
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      code === 9 ||
+      message.includes("index") ||
+      message.includes("FAILED_PRECONDITION")
+    ) {
+      console.warn(
+        "[getMemories] Firestore index missing or query precondition failed; continuing without memories:",
+        message
+      );
+      return [];
+    }
+    throw error;
+  }
 }
 
 /**
