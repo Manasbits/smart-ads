@@ -17,7 +17,9 @@
       "Bash(cd:*)",
       "Bash(rm -rf node_modules/.pnpm)",
       "Bash(rm -rf node_modules)",
-      "Bash(pnpm store:*)"
+      "Bash(pnpm store:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dlx:*)"
     ]
   }
 }
