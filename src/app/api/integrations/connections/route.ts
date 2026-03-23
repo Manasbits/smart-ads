@@ -1,39 +1,45 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-auth";
-import { getSessionForUser } from "@/lib/composio/client";
+import { getTokenMeta } from "@/lib/firestore/tokens";
 
 export const dynamic = "force-dynamic";
 
 export const GET = withAuth(async (_req, { userId }) => {
   try {
-    const session = await getSessionForUser(userId);
-    const result = await session.toolkits();
+    const [metaMeta, shopifyMeta] = await Promise.all([
+      getTokenMeta(userId, "meta_ads"),
+      getTokenMeta(userId, "shopify"),
+    ]);
 
-    const connections = result.items.map((item) => ({
-      name: item.name,
-      slug: item.slug,
-      isActive: item.connection?.isActive ?? false,
-      logo: item.logo,
-      connectedAccount: item.connection?.connectedAccount
-        ? {
-            id: item.connection.connectedAccount.id,
-            status: item.connection.connectedAccount.status,
-          }
-        : undefined,
-    }));
+    const connections = [
+      {
+        provider: "meta_ads",
+        name: "Meta Ads",
+        isActive: metaMeta !== null,
+        metadata: metaMeta
+          ? {
+              metaUserId: metaMeta.metaUserId,
+              adAccounts: metaMeta.adAccounts,
+              tokenExpiresAt: metaMeta.tokenExpiresAt,
+            }
+          : null,
+      },
+      {
+        provider: "shopify",
+        name: "Shopify",
+        isActive: shopifyMeta !== null,
+        metadata: shopifyMeta
+          ? {
+              shopDomain: shopifyMeta.shopDomain,
+              shopName: shopifyMeta.shopName,
+            }
+          : null,
+      },
+    ];
 
     return NextResponse.json({ connections });
   } catch (error) {
     console.error("[connections] Error:", error);
-
-    // If Composio is down or not configured, return empty gracefully
-    if (
-      error instanceof Error &&
-      error.message.includes("COMPOSIO_API_KEY")
-    ) {
-      return NextResponse.json({ connections: [], configured: false });
-    }
-
     return NextResponse.json(
       { error: "Failed to fetch connections" },
       { status: 500 }

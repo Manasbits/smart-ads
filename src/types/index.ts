@@ -19,13 +19,13 @@ export interface ConnectedAccount {
   provider: "meta_ads" | "shopify";
   accountId: string;
   accountName: string;
-  composioConnectionId: string;
+  connectionId: string;
 }
 
 /** Connected account stored on the user document (Firestore). */
 export interface UserConnectedAccount {
   provider: "meta_ads" | "shopify";
-  composioConnectionId: string;
+  connectionId: string;
   connectedAt: { seconds: number; nanoseconds: number };
 }
 

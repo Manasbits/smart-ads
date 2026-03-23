@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-auth";
-import { disconnectAccount } from "@/lib/composio/client";
+import { deleteToken } from "@/lib/firestore/tokens";
 import { removeConnectedAccount } from "@/lib/firestore/users";
 
 export const dynamic = "force-dynamic";
@@ -8,20 +8,19 @@ export const dynamic = "force-dynamic";
 export const POST = withAuth(async (req, { userId }) => {
   try {
     const body = await req.json();
-    const { connectedAccountId } = body;
+    const { provider } = body as { provider?: string };
 
-    if (!connectedAccountId || typeof connectedAccountId !== "string") {
+    if (provider !== "meta_ads" && provider !== "shopify") {
       return NextResponse.json(
-        { error: "connectedAccountId is required" },
+        { error: "provider must be 'meta_ads' or 'shopify'" },
         { status: 400 }
       );
     }
 
-    // Disconnect from Composio (revokes tokens)
-    await disconnectAccount(connectedAccountId);
-
-    // Remove from Firestore
-    await removeConnectedAccount(userId, connectedAccountId);
+    await Promise.all([
+      deleteToken(userId, provider),
+      removeConnectedAccount(userId, provider),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -48,13 +48,10 @@ export async function addConnectedAccount(
   const doc = await usersRef().doc(userId).get();
   const existing = (doc.data()?.connectedAccounts ?? []) as UserConnectedAccount[];
 
-  // Deduplicate — skip if same composioConnectionId already exists
-  if (existing.some((a) => a.composioConnectionId === account.composioConnectionId)) {
-    return;
-  }
-
+  // Replace existing entry for the same provider (reconnect scenario)
+  const filtered = existing.filter((a) => a.provider !== account.provider);
   const updated = [
-    ...existing,
+    ...filtered,
     { ...account, connectedAt: Timestamp.now() },
   ];
   await usersRef().doc(userId).update({ connectedAccounts: updated });
@@ -62,16 +59,14 @@ export async function addConnectedAccount(
 
 export async function removeConnectedAccount(
   userId: string,
-  composioConnectionId: string
+  provider: "meta_ads" | "shopify"
 ) {
   const doc = await usersRef().doc(userId).get();
   if (!doc.exists) return;
 
   const data = doc.data();
   const accounts = (data?.connectedAccounts ?? []) as UserConnectedAccount[];
-  const updated = accounts.filter(
-    (a) => a.composioConnectionId !== composioConnectionId
-  );
+  const updated = accounts.filter((a) => a.provider !== provider);
 
   await usersRef().doc(userId).update({ connectedAccounts: updated });
 }

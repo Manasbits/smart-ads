@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { streamText, stepCountIs, convertToModelMessages } from "ai";
-import type { UIMessage } from "ai";
+import type { UIMessage, ToolSet } from "ai";
 import { withAuth } from "@/lib/auth/with-auth";
 import { getModel } from "@/lib/ai/provider";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
-import { getToolsForUser } from "@/lib/composio/client";
+import { buildMetaTools } from "@/lib/ai/tools/meta";
+import { buildShopifyTools } from "@/lib/ai/tools/shopify";
 import { getMemories } from "@/lib/firestore/memory";
 import {
   createConversation,
@@ -46,7 +47,10 @@ export const POST = withAuth(async (req, { userId }) => {
 
     const [memories, tools] = await Promise.all([
       getMemories(userId, scopeId),
-      getToolsForUser(userId),
+      Promise.all([buildMetaTools(userId), buildShopifyTools(userId)]).then(
+        ([metaTools, shopifyTools]) =>
+          ({ ...metaTools, ...shopifyTools }) as ToolSet
+      ),
     ]);
 
     const systemPrompt = buildSystemPrompt({ activeAccounts, memories });
