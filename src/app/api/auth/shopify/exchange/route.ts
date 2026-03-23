@@ -13,24 +13,18 @@ export const dynamic = "force-dynamic";
 
 export const POST = withAuth(async (req, { userId }) => {
   try {
-    const body = await req.json();
-    const { code, shop, state, hmac, timestamp } = body as {
-      code?: string;
-      shop?: string;
-      state?: string;
-      hmac?: string;
-      timestamp?: string;
-    };
+    const body = await req.json() as Record<string, string>;
+    const { code, shop, state, hmac } = body;
 
-    if (!code || !shop || !state || !hmac || !timestamp) {
+    if (!code || !shop || !state || !hmac) {
       return NextResponse.json(
         { error: "Missing required Shopify callback parameters" },
         { status: 400 }
       );
     }
 
-    // Reconstruct URLSearchParams for HMAC verification
-    const params = new URLSearchParams({ code, shop, state, hmac, timestamp });
+    // Build params from ALL body keys — Shopify HMAC is computed over all callback params
+    const params = new URLSearchParams(body);
     if (!verifyShopifyHmac(params)) {
       return NextResponse.json({ error: "Invalid HMAC signature" }, { status: 401 });
     }
