@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,8 +19,9 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Loader2, CheckCircle2, Unplug } from "lucide-react";
+import { Plus, Loader2, CheckCircle2, Unplug, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { builtInSkills } from "@/lib/skills/built-in/index";
 
 interface AdAccount {
   id: string;
@@ -45,6 +47,13 @@ interface ConnectionInfo {
   metadata: MetaMetadata | ShopifyMetadata | null;
 }
 
+interface UserSkillItem {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+}
+
 export default function SettingsPage() {
   const { user } = useAuthContext();
   const [connections, setConnections] = useState<ConnectionInfo[]>([]);
@@ -52,6 +61,15 @@ export default function SettingsPage() {
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<string | null>(null);
   const [shopDomain, setShopDomain] = useState("");
+
+  // Skills state
+  const [userSkills, setUserSkills] = useState<UserSkillItem[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
+  const [skillForm, setSkillForm] = useState({ name: "", description: "", content: "" });
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [savingSkill, setSavingSkill] = useState(false);
+  const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
+  const [showSkillForm, setShowSkillForm] = useState(false);
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -68,9 +86,73 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchUserSkills = useCallback(async () => {
+    setLoadingSkills(true);
+    try {
+      const res = await fetch("/api/skills", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setUserSkills(data.skills ?? []);
+    } catch {
+      toast.error("Failed to load skills");
+    } finally {
+      setLoadingSkills(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchConnections();
-  }, [fetchConnections]);
+    fetchUserSkills();
+  }, [fetchConnections, fetchUserSkills]);
+
+  const handleSaveSkill = async () => {
+    if (!skillForm.name.trim() || !skillForm.description.trim() || !skillForm.content.trim()) {
+      toast.error("All fields are required");
+      return;
+    }
+    setSavingSkill(true);
+    try {
+      const url = editingSkillId ? `/api/skills/${editingSkillId}` : "/api/skills";
+      const method = editingSkillId ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(skillForm),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Failed to save skill");
+        return;
+      }
+      toast.success(editingSkillId ? "Skill updated" : "Skill created");
+      setShowSkillForm(false);
+      setEditingSkillId(null);
+      setSkillForm({ name: "", description: "", content: "" });
+      await fetchUserSkills();
+    } catch {
+      toast.error("Failed to save skill");
+    } finally {
+      setSavingSkill(false);
+    }
+  };
+
+  const handleDeleteSkill = async (skillId: string) => {
+    setDeletingSkillId(skillId);
+    try {
+      const res = await fetch(`/api/skills/${skillId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast.success("Skill deleted");
+      await fetchUserSkills();
+    } catch {
+      toast.error("Failed to delete skill");
+    } finally {
+      setDeletingSkillId(null);
+    }
+  };
 
   const initials =
     user?.displayName
@@ -150,6 +232,7 @@ export default function SettingsPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            <TabsTrigger value="skills">Skills</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6">
@@ -216,6 +299,137 @@ export default function SettingsPage() {
                     disconnecting={disconnectingProvider === "shopify"}
                   />
                 </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="skills" className="space-y-6">
+            {/* Built-in skills */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-1">Built-in Skills</h3>
+                <p className="text-xs text-muted-foreground">These skills are always available to the AI.</p>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                {builtInSkills.map(skill => (
+                  <div key={skill.name} className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <p className="text-sm font-medium font-mono">{skill.name}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{skill.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* User skills */}
+            <div className="space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium mb-1">My Skills</h3>
+                  <p className="text-xs text-muted-foreground">Create custom skills to extend the AI&apos;s capabilities.</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => {
+                    setEditingSkillId(null);
+                    setSkillForm({ name: "", description: "", content: "" });
+                    setShowSkillForm(true);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  New Skill
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Form (shown when creating or editing) */}
+              {showSkillForm && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                  <h4 className="text-sm font-medium">{editingSkillId ? "Edit Skill" : "New Skill"}</h4>
+                  <Input
+                    placeholder="skill-name (kebab-case)"
+                    value={skillForm.name}
+                    onChange={e => setSkillForm(f => ({ ...f, name: e.target.value }))}
+                    disabled={!!editingSkillId}
+                    className="h-8 text-sm font-mono"
+                  />
+                  <Input
+                    placeholder="One-line description"
+                    value={skillForm.description}
+                    onChange={e => setSkillForm(f => ({ ...f, description: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                  <Textarea
+                    placeholder={"# Skill Instructions\n\nWrite the full instructions for this skill in Markdown..."}
+                    value={skillForm.content}
+                    onChange={e => setSkillForm(f => ({ ...f, content: e.target.value }))}
+                    className="text-sm font-mono min-h-[160px] resize-y"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setShowSkillForm(false); setEditingSkillId(null); }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleSaveSkill} disabled={savingSkill}>
+                      {savingSkill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      {editingSkillId ? "Save Changes" : "Create Skill"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Existing user skills list */}
+              {loadingSkills ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : userSkills.length === 0 && !showSkillForm ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No custom skills yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {userSkills.map(skill => (
+                    <div key={skill.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium font-mono truncate">{skill.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{skill.description}</p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => {
+                              setEditingSkillId(skill.id);
+                              setSkillForm({ name: skill.name, description: skill.description, content: skill.content });
+                              setShowSkillForm(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                            disabled={deletingSkillId === skill.id}
+                            onClick={() => handleDeleteSkill(skill.id)}
+                          >
+                            {deletingSkillId === skill.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Delete"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </TabsContent>
