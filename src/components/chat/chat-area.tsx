@@ -17,6 +17,42 @@ interface ChatAreaProps {
   connectedAccounts: ConnectedAccount[];
 }
 
+function humanizeToolName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/^(Get|Fetch|List|Create|Update|Delete)\s/i, (match) => {
+      const verb = match.trim().toLowerCase();
+      const m: Record<string, string> = { get: 'Fetching', fetch: 'Fetching', list: 'Listing', create: 'Creating', update: 'Updating', delete: 'Deleting' };
+      return (m[verb] || match) + ' ';
+    });
+}
+
+function getStatusLabel(status: string, messages: UIMessage[]): string {
+  if (status === 'ready' || status === 'error') return '';
+  if (status === 'submitted') return 'Thinking...';
+  const lastMsg = [...messages].reverse().find(m => m.role === 'assistant');
+  if (!lastMsg) return status === 'streaming' ? 'Responding...' : '';
+  const reasoningPart = lastMsg.parts.find(
+    (p): p is Extract<typeof p, { type: 'reasoning' }> => p.type === 'reasoning'
+  );
+  if (reasoningPart && (reasoningPart as any).state === 'streaming') return 'Thinking...';
+  const incompleteTool = lastMsg.parts.find(
+    p => p.type === 'dynamic-tool' && (p as any).state !== 'output-available'
+  );
+  if (incompleteTool) {
+    const tool = incompleteTool as any;
+    if (tool.toolName === 'activate_skill') {
+      const skillName = tool.input?.name || tool.args?.name || '';
+      return `Loading skill: ${skillName}`;
+    }
+    return `${humanizeToolName(tool.toolName)}...`;
+  }
+  if (status === 'streaming') return 'Responding...';
+  return '';
+}
+
 const SUGGESTIONS = [
   { icon: BarChart3, text: "How are my Meta Ads performing this week?" },
   { icon: ShoppingBag, text: "Show me top-selling products on Shopify" },
@@ -68,7 +104,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
     [conversationId, transport]
   );
 
-  const { messages, sendMessage, status, setMessages } = useChat(chatOptions);
+  const { messages, sendMessage, status, setMessages, stop } = useChat(chatOptions);
 
   // Load past messages when opening an existing conversation
   useEffect(() => {
@@ -107,6 +143,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
   }, [conversationId, setMessages]);
 
   const isLoading = status === "submitted" || status === "streaming";
+  const statusLabel = getStatusLabel(status, messages);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -195,10 +232,16 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
       </div>
 
       <div className="max-w-3xl mx-auto w-full">
+        {statusLabel && (
+          <div className="px-4 pb-1">
+            <p className="text-xs text-muted-foreground/60 animate-pulse">{statusLabel}</p>
+          </div>
+        )}
         <ChatInput
           value={input}
           onChange={setInput}
           onSubmit={onSubmit}
+          onStop={stop}
           isLoading={isLoading}
         />
       </div>

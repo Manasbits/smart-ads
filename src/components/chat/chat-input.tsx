@@ -3,12 +3,13 @@
 import { useRef, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { SendHorizonal, Loader2 } from "lucide-react";
+import { SendHorizonal, Square } from "lucide-react";
 
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
+  onStop?: () => void;
   isLoading: boolean;
 }
 
@@ -16,6 +17,7 @@ export function ChatInput({
   value,
   onChange,
   onSubmit,
+  onStop,
   isLoading,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,27 +61,33 @@ export function ChatInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Ask about your campaigns, orders, performance..."
-          disabled={isLoading}
           rows={1}
           className={cn(
             "flex-1 resize-none bg-transparent text-sm leading-relaxed",
             "placeholder:text-muted-foreground/50",
-            "focus:outline-none disabled:opacity-50",
+            "focus:outline-none",
             "max-h-[200px]"
           )}
         />
-        <Button
-          onClick={onSubmit}
-          disabled={!value.trim() || isLoading}
-          size="icon"
-          className="h-8 w-8 shrink-0 rounded-xl"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
+        {isLoading && onStop ? (
+          <Button
+            onClick={onStop}
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-xl"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={onSubmit}
+            disabled={!value.trim() || isLoading}
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-xl"
+          >
             <SendHorizonal className="h-4 w-4" />
-          )}
-        </Button>
+          </Button>
+        )}
       </div>
       <p className="text-center text-xs text-muted-foreground/40 mt-2">
         SmartAds AI can make mistakes. Verify important data.
