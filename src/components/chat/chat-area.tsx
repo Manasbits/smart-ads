@@ -65,6 +65,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
   const historyLoadedFor = useRef<string | undefined>(undefined);
+  const reasoningStartRef = useRef<Map<string, number>>(new Map());
 
   const activeWorkspaceId = useUIStore((s) => s.activeWorkspaceId);
   const activeMetaAdsAccountId = useUIStore((s) => s.activeMetaAdsAccountId);
@@ -215,18 +216,30 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto py-4">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role as "user" | "assistant"}
-                parts={message.parts}
-                userPhotoURL={
-                  message.role === "user"
-                    ? user?.photoURL || undefined
-                    : undefined
+            {messages.map((message) => {
+              if (message.role === "assistant") {
+                const hasReasoning = message.parts.some(
+                  (p) => p.type === "reasoning"
+                );
+                if (hasReasoning && !reasoningStartRef.current.has(message.id)) {
+                  reasoningStartRef.current.set(message.id, Date.now());
                 }
-              />
-            ))}
+              }
+              return (
+                <ChatMessage
+                  key={message.id}
+                  messageId={message.id}
+                  role={message.role as "user" | "assistant"}
+                  parts={message.parts}
+                  userPhotoURL={
+                    message.role === "user"
+                      ? user?.photoURL || undefined
+                      : undefined
+                  }
+                  reasoningStartedAt={reasoningStartRef.current.get(message.id)}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ToolActivity } from "@/components/chat/tool-activity";
+import { ThinkingBlock } from "@/components/chat/thinking-block";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Zap, User } from "lucide-react";
@@ -13,12 +14,16 @@ interface ChatMessageProps {
   role: "user" | "assistant";
   parts: UIMessage["parts"];
   userPhotoURL?: string;
+  messageId: string;
+  reasoningStartedAt?: number;
 }
 
 export function ChatMessage({
   role,
   parts,
   userPhotoURL,
+  messageId: _messageId,
+  reasoningStartedAt,
 }: ChatMessageProps) {
   const isUser = role === "user";
 
@@ -33,6 +38,15 @@ export function ChatMessage({
     (p): p is Extract<typeof p, { type: "dynamic-tool" }> =>
       p.type === "dynamic-tool"
   );
+
+  // Extract reasoning parts
+  const reasoningParts = parts.filter(
+    (p): p is Extract<typeof p, { type: "reasoning" }> => p.type === "reasoning"
+  );
+  const isReasoningStreaming = reasoningParts.some(
+    (p) => (p as any).state === "streaming"
+  );
+  const reasoningText = reasoningParts.map((p) => (p as any).text ?? "").join("");
 
   return (
     <div
@@ -55,6 +69,15 @@ export function ChatMessage({
           isUser ? "order-first" : ""
         )}
       >
+        {/* ThinkingBlock — shown before tool activity and text */}
+        {!isUser && reasoningParts.length > 0 && reasoningText && (
+          <ThinkingBlock
+            text={reasoningText}
+            isStreaming={isReasoningStreaming}
+            startedAt={reasoningStartedAt ?? Date.now()}
+          />
+        )}
+
         {/* Tool invocations — shown before assistant text */}
         {!isUser && toolParts.length > 0 && (
           <div className="mb-2">
