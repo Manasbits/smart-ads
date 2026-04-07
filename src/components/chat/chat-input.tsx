@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
+import React, { useRef, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SendHorizonal, Square } from "lucide-react";
@@ -11,6 +11,8 @@ interface ChatInputProps {
   onSubmit: () => void;
   onStop?: () => void;
   isLoading: boolean;
+  slashMenu?: React.ReactNode;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
 export function ChatInput({
@@ -19,6 +21,8 @@ export function ChatInput({
   onSubmit,
   onStop,
   isLoading,
+  slashMenu,
+  onKeyDown,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -35,6 +39,8 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    onKeyDown?.(e);
+    if (e.defaultPrevented) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (value.trim() && !isLoading) {
@@ -48,7 +54,9 @@ export function ChatInput({
   };
 
   return (
-    <div className="p-4">
+    <div className="relative">
+      {slashMenu}
+      <div className="p-4">
       <div
         className={cn(
           "flex items-end gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-3",
@@ -92,6 +100,7 @@ export function ChatInput({
       <p className="text-center text-xs text-muted-foreground/40 mt-2">
         SmartAds AI can make mistakes. Verify important data.
       </p>
+      </div>
     </div>
   );
 }

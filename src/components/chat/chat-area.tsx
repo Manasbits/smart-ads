@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { useChat, type UseChatOptions } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useAuthContext } from "@/components/providers/auth-provider";
@@ -8,6 +9,8 @@ import { useUIStore } from "@/stores/ui-store";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
 import { AccountSelector } from "@/components/chat/account-selector";
+import { SlashCommandMenu } from "@/components/chat/slash-command-menu";
+import { builtInSkills } from "@/lib/skills/built-in/index";
 import { Zap, BarChart3, ShoppingBag, TrendingUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ConnectedAccount } from "@/types";
@@ -64,6 +67,11 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [slashMenuVisible, setSlashMenuVisible] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+  const [forcedSkill, setForcedSkill] = useState<string | null>(null);
   const historyLoadedFor = useRef<string | undefined>(undefined);
   const reasoningStartRef = useRef<Map<string, number>>(new Map());
 
@@ -83,6 +91,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
             metaAdsAccountId: activeMetaAdsAccountId,
             shopifyStoreId: activeShopifyStoreId,
           },
+          forcedSkill,
         },
       }),
     [
@@ -90,6 +99,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
       activeWorkspaceId,
       activeMetaAdsAccountId,
       activeShopifyStoreId,
+      forcedSkill,
     ]
   );
 
@@ -143,6 +153,22 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
     return () => { cancelled = true; };
   }, [conversationId, setMessages]);
 
+  // Load available skills (built-ins + user skills) for slash command menu
+  useEffect(() => {
+    const base = builtInSkills.map(s => ({ name: s.name, description: s.description }));
+    setAvailableSkills(base);
+
+    fetch('/api/skills', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { skills: [] })
+      .then(data => {
+        const userSkills: Array<{ name: string; description: string }> = data.skills ?? [];
+        const map = new Map(base.map(s => [s.name, s]));
+        for (const s of userSkills) map.set(s.name, s);
+        setAvailableSkills(Array.from(map.values()));
+      })
+      .catch(() => {});
+  }, []);
+
   const isLoading = status === "submitted" || status === "streaming";
   const statusLabel = getStatusLabel(status, messages);
 
@@ -160,10 +186,68 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
     sendMessage({ text });
   };
 
+  const handleInputChange = useCallback((value: string) => {
+    setInput(value);
+    if (value.startsWith('/')) {
+      const query = value.slice(1);
+      setSlashQuery(query);
+      setSlashMenuVisible(true);
+      setSlashSelectedIndex(0);
+    } else {
+      setSlashMenuVisible(false);
+      setSlashQuery('');
+    }
+  }, []);
+
+  const selectSkill = useCallback((skillName: string) => {
+    setInput(`/${skillName} `);
+    setSlashMenuVisible(false);
+    setSlashQuery('');
+    setSlashSelectedIndex(0);
+  }, []);
+
+  const handleSlashKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!slashMenuVisible) return;
+    const filtered = slashQuery
+      ? availableSkills.filter(s =>
+          s.name.toLowerCase().includes(slashQuery.toLowerCase()) ||
+          s.description.toLowerCase().includes(slashQuery.toLowerCase())
+        )
+      : availableSkills;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSlashSelectedIndex(i => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSlashSelectedIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (filtered[slashSelectedIndex]) {
+        e.preventDefault();
+        selectSkill(filtered[slashSelectedIndex].name);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setSlashMenuVisible(false);
+    }
+  }, [slashMenuVisible, slashQuery, availableSkills, slashSelectedIndex, selectSkill]);
+
   const onSubmit = () => {
     if (!input.trim() || isLoading) return;
-    sendMessage({ text: input });
-    setInput("");
+
+    const slashMatch = input.match(/^\/([a-z][a-z0-9-]*)\s*([\s\S]*)/);
+    if (slashMatch) {
+      const [, skillName, rest] = slashMatch;
+      const messageText = rest.trim() || `Please use the ${skillName} skill.`;
+      flushSync(() => setForcedSkill(skillName));
+      sendMessage({ text: messageText });
+      setForcedSkill(null);
+    } else {
+      sendMessage({ text: input });
+    }
+
+    setInput('');
+    setSlashMenuVisible(false);
   };
 
   if (loadingHistory) {
@@ -252,10 +336,21 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
         )}
         <ChatInput
           value={input}
-          onChange={setInput}
+          onChange={handleInputChange}
           onSubmit={onSubmit}
           onStop={stop}
+          onKeyDown={handleSlashKeyDown}
           isLoading={isLoading}
+          slashMenu={
+            <SlashCommandMenu
+              query={slashQuery}
+              skills={availableSkills}
+              visible={slashMenuVisible}
+              selectedIndex={slashSelectedIndex}
+              onSelect={selectSkill}
+              onClose={() => setSlashMenuVisible(false)}
+            />
+          }
         />
       </div>
     </div>
