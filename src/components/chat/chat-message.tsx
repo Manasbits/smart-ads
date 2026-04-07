@@ -4,10 +4,8 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ToolActivity } from "@/components/chat/tool-activity";
 import { ThinkingBlock } from "@/components/chat/thinking-block";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { RichMarkdown } from "@/components/chat/rich-markdown";
 import { Zap, User } from "lucide-react";
-import type { ComponentPropsWithoutRef } from "react";
 import type { UIMessage } from "ai";
 
 interface ChatMessageProps {
@@ -120,45 +118,7 @@ export function ChatMessage({
             {isUser ? (
               <p className="whitespace-pre-wrap">{textContent}</p>
             ) : (
-              <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-th:text-left prose-table:border prose-table:border-border prose-td:border prose-td:border-border prose-th:border prose-th:border-border prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-a:text-blue-400">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    pre: ({
-                      children,
-                      ...props
-                    }: ComponentPropsWithoutRef<"pre">) => (
-                      <pre
-                        className="rounded-lg bg-muted/50 border border-border p-3 overflow-x-auto"
-                        {...props}
-                      >
-                        {children}
-                      </pre>
-                    ),
-                    code: ({
-                      children,
-                      className,
-                      ...props
-                    }: ComponentPropsWithoutRef<"code">) => {
-                      const isInline = !className;
-                      return isInline ? (
-                        <code
-                          className="rounded bg-muted/50 px-1.5 py-0.5 text-xs"
-                          {...props}
-                        >
-                          {children}
-                        </code>
-                      ) : (
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                >
-                  {textContent}
-                </ReactMarkdown>
-              </div>
+              <RichMarkdown content={textContent} />
             )}
           </div>
         )}
