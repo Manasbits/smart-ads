@@ -11,7 +11,7 @@ export const openrouter = createOpenRouter({
 });
 
 export function getModel() {
-  const modelId = process.env.LLM_MODEL || "anthropic/claude-3.5-sonnet";
+  const modelId = process.env.LLM_MODEL || "anthropic/claude-sonnet-4-6";
 
   return openrouter(modelId, {
     extraBody: {

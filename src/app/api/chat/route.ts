@@ -6,6 +6,8 @@ import { getModel } from "@/lib/ai/provider";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { buildMetaTools } from "@/lib/ai/tools/meta";
 import { buildShopifyTools } from "@/lib/ai/tools/shopify";
+import { buildSkillTools } from "@/lib/ai/tools/skills";
+import { SkillRegistry } from "@/lib/skills/registry";
 import { getMemories } from "@/lib/firestore/memory";
 import {
   createConversation,
@@ -13,6 +15,8 @@ import {
   updateConversation,
 } from "@/lib/firestore/conversations";
 import { extractAndSaveMemories } from "@/lib/memory/manager";
+
+const registry = new SkillRegistry();
 
 function textFromParts(parts?: UIMessage["parts"]): string {
   if (!parts?.length) return "";
@@ -31,7 +35,7 @@ export const maxDuration = 300;
 export const POST = withAuth(async (req, { userId }) => {
   try {
     const body = await req.json();
-    const { messages, conversationId, workspaceId, activeAccounts } = body;
+    const { messages, conversationId, workspaceId, activeAccounts, forcedSkill } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -45,15 +49,20 @@ export const POST = withAuth(async (req, { userId }) => {
       activeAccounts?.shopifyStoreId ||
       undefined;
 
-    const [memories, tools] = await Promise.all([
+    const [memories, skills, tools] = await Promise.all([
       getMemories(userId, scopeId),
-      Promise.all([buildMetaTools(userId), buildShopifyTools(userId)]).then(
-        ([metaTools, shopifyTools]) =>
-          ({ ...metaTools, ...shopifyTools }) as ToolSet
+      registry.list(userId),
+      Promise.all([
+        buildMetaTools(userId),
+        buildShopifyTools(userId),
+        buildSkillTools(userId, registry),
+      ]).then(
+        ([metaTools, shopifyTools, skillTools]) =>
+          ({ ...metaTools, ...shopifyTools, ...skillTools }) as ToolSet
       ),
     ]);
 
-    const systemPrompt = buildSystemPrompt({ activeAccounts, memories });
+    const systemPrompt = buildSystemPrompt({ activeAccounts, memories, skills });
 
     let activeConversationId = conversationId;
     if (!activeConversationId) {
@@ -74,6 +83,35 @@ export const POST = withAuth(async (req, { userId }) => {
       tools,
       ignoreIncompleteToolCalls: true,
     });
+
+    if (forcedSkill) {
+      const skill = await registry.get(userId, forcedSkill);
+      if (skill) {
+        modelMessages.unshift(
+          {
+            role: 'assistant' as const,
+            content: [{
+              type: 'tool-call' as const,
+              toolCallId: 'forced-skill',
+              toolName: 'activate_skill',
+              input: { name: forcedSkill },
+            }],
+          },
+          {
+            role: 'tool' as const,
+            content: [{
+              type: 'tool-result' as const,
+              toolCallId: 'forced-skill',
+              toolName: 'activate_skill',
+              output: {
+                type: 'text' as const,
+                value: `<skill_content name="${forcedSkill}">\n${skill.content}\n</skill_content>`,
+              },
+            }],
+          }
+        );
+      }
+    }
 
     const result = streamText({
       model: getModel(),

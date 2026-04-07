@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { useChat, type UseChatOptions } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useAuthContext } from "@/components/providers/auth-provider";
@@ -8,6 +9,8 @@ import { useUIStore } from "@/stores/ui-store";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
 import { AccountSelector } from "@/components/chat/account-selector";
+import { SlashCommandMenu } from "@/components/chat/slash-command-menu";
+import { builtInSkills } from "@/lib/skills/built-in/index";
 import { Zap, BarChart3, ShoppingBag, TrendingUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ConnectedAccount } from "@/types";
@@ -15,6 +18,42 @@ import type { ConnectedAccount } from "@/types";
 interface ChatAreaProps {
   conversationId?: string;
   connectedAccounts: ConnectedAccount[];
+}
+
+function humanizeToolName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/^(Get|Fetch|List|Create|Update|Delete)\s/i, (match) => {
+      const verb = match.trim().toLowerCase();
+      const m: Record<string, string> = { get: 'Fetching', fetch: 'Fetching', list: 'Listing', create: 'Creating', update: 'Updating', delete: 'Deleting' };
+      return (m[verb] || match) + ' ';
+    });
+}
+
+function getStatusLabel(status: string, messages: UIMessage[]): string {
+  if (status === 'ready' || status === 'error') return '';
+  if (status === 'submitted') return 'Thinking...';
+  const lastMsg = [...messages].reverse().find(m => m.role === 'assistant');
+  if (!lastMsg) return status === 'streaming' ? 'Responding...' : '';
+  const reasoningPart = lastMsg.parts.find(
+    (p): p is Extract<typeof p, { type: 'reasoning' }> => p.type === 'reasoning'
+  );
+  if (reasoningPart && (reasoningPart as any).state === 'streaming') return 'Thinking...';
+  const incompleteTool = lastMsg.parts.find(
+    p => p.type === 'dynamic-tool' && (p as any).state !== 'output-available'
+  );
+  if (incompleteTool) {
+    const tool = incompleteTool as any;
+    if (tool.toolName === 'activate_skill') {
+      const skillName = tool.input?.name || tool.args?.name || '';
+      return `Loading skill: ${skillName}`;
+    }
+    return `${humanizeToolName(tool.toolName)}...`;
+  }
+  if (status === 'streaming') return 'Responding...';
+  return '';
 }
 
 const SUGGESTIONS = [
@@ -28,7 +67,13 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [slashMenuVisible, setSlashMenuVisible] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
+  const [forcedSkill, setForcedSkill] = useState<string | null>(null);
   const historyLoadedFor = useRef<string | undefined>(undefined);
+  const reasoningStartRef = useRef<Map<string, number>>(new Map());
 
   const activeWorkspaceId = useUIStore((s) => s.activeWorkspaceId);
   const activeMetaAdsAccountId = useUIStore((s) => s.activeMetaAdsAccountId);
@@ -46,6 +91,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
             metaAdsAccountId: activeMetaAdsAccountId,
             shopifyStoreId: activeShopifyStoreId,
           },
+          forcedSkill,
         },
       }),
     [
@@ -53,6 +99,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
       activeWorkspaceId,
       activeMetaAdsAccountId,
       activeShopifyStoreId,
+      forcedSkill,
     ]
   );
 
@@ -68,7 +115,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
     [conversationId, transport]
   );
 
-  const { messages, sendMessage, status, setMessages } = useChat(chatOptions);
+  const { messages, sendMessage, status, setMessages, stop } = useChat(chatOptions);
 
   // Load past messages when opening an existing conversation
   useEffect(() => {
@@ -106,7 +153,24 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
     return () => { cancelled = true; };
   }, [conversationId, setMessages]);
 
+  // Load available skills (built-ins + user skills) for slash command menu
+  useEffect(() => {
+    const base = builtInSkills.map(s => ({ name: s.name, description: s.description }));
+    setAvailableSkills(base);
+
+    fetch('/api/skills', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { skills: [] })
+      .then(data => {
+        const userSkills: Array<{ name: string; description: string }> = data.skills ?? [];
+        const map = new Map(base.map(s => [s.name, s]));
+        for (const s of userSkills) map.set(s.name, s);
+        setAvailableSkills(Array.from(map.values()));
+      })
+      .catch(() => {});
+  }, []);
+
   const isLoading = status === "submitted" || status === "streaming";
+  const statusLabel = getStatusLabel(status, messages);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -122,10 +186,68 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
     sendMessage({ text });
   };
 
+  const handleInputChange = useCallback((value: string) => {
+    setInput(value);
+    if (value.startsWith('/')) {
+      const query = value.slice(1);
+      setSlashQuery(query);
+      setSlashMenuVisible(true);
+      setSlashSelectedIndex(0);
+    } else {
+      setSlashMenuVisible(false);
+      setSlashQuery('');
+    }
+  }, []);
+
+  const selectSkill = useCallback((skillName: string) => {
+    setInput(`/${skillName} `);
+    setSlashMenuVisible(false);
+    setSlashQuery('');
+    setSlashSelectedIndex(0);
+  }, []);
+
+  const handleSlashKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!slashMenuVisible) return;
+    const filtered = slashQuery
+      ? availableSkills.filter(s =>
+          s.name.toLowerCase().includes(slashQuery.toLowerCase()) ||
+          s.description.toLowerCase().includes(slashQuery.toLowerCase())
+        )
+      : availableSkills;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSlashSelectedIndex(i => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSlashSelectedIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (filtered[slashSelectedIndex]) {
+        e.preventDefault();
+        selectSkill(filtered[slashSelectedIndex].name);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setSlashMenuVisible(false);
+    }
+  }, [slashMenuVisible, slashQuery, availableSkills, slashSelectedIndex, selectSkill]);
+
   const onSubmit = () => {
     if (!input.trim() || isLoading) return;
-    sendMessage({ text: input });
-    setInput("");
+
+    const slashMatch = input.match(/^\/([a-z][a-z0-9-]*)\s*([\s\S]*)/);
+    if (slashMatch) {
+      const [, skillName, rest] = slashMatch;
+      const messageText = rest.trim() || `Please use the ${skillName} skill.`;
+      flushSync(() => setForcedSkill(skillName));
+      sendMessage({ text: messageText });
+      setForcedSkill(null);
+    } else {
+      sendMessage({ text: input });
+    }
+
+    setInput('');
+    setSlashMenuVisible(false);
   };
 
   if (loadingHistory) {
@@ -178,28 +300,57 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto py-4">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role as "user" | "assistant"}
-                parts={message.parts}
-                userPhotoURL={
-                  message.role === "user"
-                    ? user?.photoURL || undefined
-                    : undefined
+            {messages.map((message) => {
+              if (message.role === "assistant") {
+                const hasReasoning = message.parts.some(
+                  (p) => p.type === "reasoning"
+                );
+                if (hasReasoning && !reasoningStartRef.current.has(message.id)) {
+                  reasoningStartRef.current.set(message.id, Date.now());
                 }
-              />
-            ))}
+              }
+              return (
+                <ChatMessage
+                  key={message.id}
+                  messageId={message.id}
+                  role={message.role as "user" | "assistant"}
+                  parts={message.parts}
+                  userPhotoURL={
+                    message.role === "user"
+                      ? user?.photoURL || undefined
+                      : undefined
+                  }
+                  reasoningStartedAt={reasoningStartRef.current.get(message.id)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
 
       <div className="max-w-3xl mx-auto w-full">
+        {statusLabel && (
+          <div className="px-4 pb-1">
+            <p className="text-xs text-muted-foreground/60 animate-pulse">{statusLabel}</p>
+          </div>
+        )}
         <ChatInput
           value={input}
-          onChange={setInput}
+          onChange={handleInputChange}
           onSubmit={onSubmit}
+          onStop={stop}
+          onKeyDown={handleSlashKeyDown}
           isLoading={isLoading}
+          slashMenu={
+            <SlashCommandMenu
+              query={slashQuery}
+              skills={availableSkills}
+              visible={slashMenuVisible}
+              selectedIndex={slashSelectedIndex}
+              onSelect={selectSkill}
+              onClose={() => setSlashMenuVisible(false)}
+            />
+          }
         />
       </div>
     </div>

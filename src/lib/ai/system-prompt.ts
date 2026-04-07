@@ -1,9 +1,11 @@
 import type { Memory, ActiveAccountContext } from "@/types";
+import type { Skill } from "@/lib/skills/types";
 
 interface PromptContext {
   activeAccounts?: ActiveAccountContext;
   accountNames?: { metaAds?: string; shopify?: string };
   memories: Memory[];
+  skills?: Skill[];
 }
 
 export function buildSystemPrompt(ctx: PromptContext): string {
@@ -36,6 +38,13 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     }
   }
 
+  if (ctx.skills && ctx.skills.length > 0) {
+    parts.push(`\nAvailable skills (call activate_skill to load full instructions before proceeding):`);
+    for (const skill of ctx.skills) {
+      parts.push(`- ${skill.name}: ${skill.description}`);
+    }
+  }
+
   parts.push(`\nRules:`);
   parts.push(`- Only query or modify the active accounts listed above.`);
   parts.push(
@@ -50,6 +59,10 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   );
   parts.push(
     `- Be concise but thorough. Lead with the key insight, then supporting data.`
+  );
+
+  parts.push(
+    `\nChart rendering: When you want to display data as a chart, emit a fenced code block with language "chart" containing only this JSON (no extra keys, no markdown around it):\n{"type":"bar|line|pie","title":"Chart title","data":[{"name":"Label","value":123}],"xKey":"name","yKey":"value"}\nUse "bar" for comparisons, "line" for time series, "pie" for share breakdowns.`
   );
 
   return parts.join("\n");
