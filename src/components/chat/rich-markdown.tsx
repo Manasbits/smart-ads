@@ -2,11 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import dynamic from 'next/dynamic';
 import type { ComponentPropsWithoutRef } from 'react';
-
-const MermaidBlock = dynamic(() => import('./mermaid-block').then(m => m.MermaidBlock), { ssr: false });
-const ChartBlock = dynamic(() => import('./chart-block').then(m => m.ChartBlock), { ssr: false });
 
 interface RichMarkdownProps {
   content: string;
@@ -14,26 +10,43 @@ interface RichMarkdownProps {
 
 export function RichMarkdown({ content }: RichMarkdownProps) {
   return (
-    <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-th:text-left prose-table:border-collapse prose-table:border prose-table:border-border prose-td:border prose-td:border-border prose-th:border prose-th:border-border prose-td:px-3 prose-td:py-1.5 prose-th:px-3 prose-th:py-1.5 prose-a:text-blue-400 [&_tbody_tr:nth-child(even)]:bg-muted/10">
+    <div className="prose prose-invert prose-sm max-w-none leading-relaxed prose-p:my-2 prose-headings:mb-2 prose-headings:mt-4 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-blockquote:border-l-border prose-blockquote:text-muted-foreground">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          table: ({ children, ...props }: ComponentPropsWithoutRef<"table">) => (
+            <div className="my-3 overflow-x-auto rounded-lg border border-border">
+              <table className="w-full border-collapse text-sm" {...props}>
+                {children}
+              </table>
+            </div>
+          ),
+          thead: ({ children, ...props }: ComponentPropsWithoutRef<"thead">) => (
+            <thead className="bg-muted/40" {...props}>
+              {children}
+            </thead>
+          ),
+          th: ({ children, ...props }: ComponentPropsWithoutRef<"th">) => (
+            <th className="border-b border-border px-3 py-2 text-left font-medium text-foreground" {...props}>
+              {children}
+            </th>
+          ),
+          td: ({ children, ...props }: ComponentPropsWithoutRef<"td">) => (
+            <td className="border-b border-border/60 px-3 py-2 align-top text-foreground/90" {...props}>
+              {children}
+            </td>
+          ),
+          tr: ({ children, ...props }: ComponentPropsWithoutRef<"tr">) => (
+            <tr className="odd:bg-background even:bg-muted/10" {...props}>
+              {children}
+            </tr>
+          ),
           pre: ({ children, ...props }: ComponentPropsWithoutRef<'pre'>) => (
             <pre className="rounded-lg bg-muted/50 border border-border p-3 overflow-x-auto" {...props}>
               {children}
             </pre>
           ),
           code: ({ children, className, ...props }: ComponentPropsWithoutRef<'code'>) => {
-            const language = className?.replace('language-', '');
-            const code = String(children).replace(/\n$/, '');
-
-            if (language === 'mermaid') {
-              return <MermaidBlock code={code} />;
-            }
-            if (language === 'chart') {
-              return <ChartBlock code={code} />;
-            }
-
             const isInline = !className;
             return isInline ? (
               <code className="rounded bg-muted/50 px-1.5 py-0.5 text-xs" {...props}>

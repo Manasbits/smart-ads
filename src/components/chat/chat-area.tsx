@@ -75,7 +75,6 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
   const historyLoadedFor = useRef<string | undefined>(undefined);
   const reasoningStartRef = useRef<Map<string, number>>(new Map());
 
-  const activeWorkspaceId = useUIStore((s) => s.activeWorkspaceId);
   const activeMetaAdsAccountId = useUIStore((s) => s.activeMetaAdsAccountId);
   const activeShopifyStoreId = useUIStore((s) => s.activeShopifyStoreId);
 
@@ -86,7 +85,6 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
         credentials: "include",
         body: {
           conversationId,
-          workspaceId: activeWorkspaceId,
           activeAccounts: {
             metaAdsAccountId: activeMetaAdsAccountId,
             shopifyStoreId: activeShopifyStoreId,
@@ -96,7 +94,6 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
       }),
     [
       conversationId,
-      activeWorkspaceId,
       activeMetaAdsAccountId,
       activeShopifyStoreId,
       forcedSkill,
@@ -299,7 +296,7 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto py-4">
+          <div className="mx-auto w-full max-w-6xl px-3 py-3 md:px-6">
             {messages.map((message) => {
               if (message.role === "assistant") {
                 const hasReasoning = message.parts.some(
@@ -328,9 +325,9 @@ export function ChatArea({ conversationId, connectedAccounts }: ChatAreaProps) {
         )}
       </div>
 
-      <div className="max-w-3xl mx-auto w-full">
+      <div className="mx-auto w-full max-w-6xl px-3 md:px-6">
         {statusLabel && (
-          <div className="px-4 pb-1">
+          <div className="px-2 pb-1">
             <p className="text-xs text-muted-foreground/60 animate-pulse">{statusLabel}</p>
           </div>
         )}

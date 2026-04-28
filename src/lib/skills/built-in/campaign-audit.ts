@@ -41,5 +41,5 @@ Perform a comprehensive, multi-step audit of Meta Ads campaign performance. Go b
 1. Executive Summary (3-5 bullet points)
 2. Detailed findings by campaign
 3. Priority action table
-4. Charts where helpful (use \`\`\`chart blocks for ROAS comparison, spend by campaign)`,
+4. Keep output markdown-only (use comparison tables instead of chart blocks)`,
 };

@@ -21,7 +21,6 @@ export async function extractAndSaveMemories(params: {
   userMessage: string;
   assistantMessage: string;
   scopeId: string | null;
-  workspaceId: string | null;
 }) {
   try {
     const { text } = await generateText({
@@ -50,7 +49,6 @@ export async function extractAndSaveMemories(params: {
           userId: params.userId,
           scope: params.scopeId ? "account" : "global",
           scopeId: params.scopeId,
-          workspaceId: params.workspaceId,
           category: mem.category,
           content: mem.content,
           source: {

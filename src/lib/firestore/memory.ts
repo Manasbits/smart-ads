@@ -12,7 +12,6 @@ export async function saveMemory(memory: {
   userId: string;
   scope: Memory["scope"];
   scopeId: string | null;
-  workspaceId: string | null;
   category: Memory["category"];
   content: string;
   source: { conversationId: string; messageId: string };
@@ -23,7 +22,6 @@ export async function saveMemory(memory: {
     userId: memory.userId,
     scope: memory.scope,
     scopeId: memory.scopeId,
-    workspaceId: memory.workspaceId,
     category: memory.category,
     content: memory.content,
     source: memory.source,

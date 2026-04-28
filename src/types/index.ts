@@ -48,7 +48,6 @@ export interface ActiveAccountContext {
 export interface Conversation {
   id: string;
   userId: string;
-  workspaceId: string | null;
   title: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -77,7 +76,6 @@ export interface Memory {
   userId: string;
   scope: "global" | "account";
   scopeId: string | null;
-  workspaceId: string | null;
   category: "business_context" | "preference" | "insight";
   content: string;
   source: { conversationId: string; messageId: string };
@@ -88,6 +86,5 @@ export interface Memory {
 export interface ChatRequestBody {
   messages: { role: string; content: string }[];
   conversationId?: string;
-  workspaceId?: string;
   activeAccounts?: ActiveAccountContext;
 }

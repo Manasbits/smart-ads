@@ -23,7 +23,6 @@ const messagesRef = (conversationId: string) =>
 export async function createConversation(
   userId: string,
   title: string,
-  workspaceId?: string | null,
   activeAccountContext?: ActiveAccountContext
 ): Promise<string> {
   const now = Timestamp.now();
@@ -31,7 +30,6 @@ export async function createConversation(
   const docRef = await conversationsRef().add({
     userId,
     title,
-    workspaceId: workspaceId ?? null,
     status: "active",
     activeAccountContext: activeAccountContext ?? {
       metaAdsAccountId: null,
@@ -60,17 +58,12 @@ export async function getConversation(
 
 export async function listConversations(
   userId: string,
-  workspaceId?: string | null,
   cursor?: DocumentSnapshot,
   limit: number = 20
 ): Promise<{ conversations: (Conversation & { id: string })[]; lastDoc: DocumentSnapshot | null }> {
   let query = conversationsRef()
     .where("userId", "==", userId)
     .orderBy("updatedAt", "desc");
-
-  if (workspaceId !== undefined && workspaceId !== null) {
-    query = query.where("workspaceId", "==", workspaceId);
-  }
 
   if (cursor) {
     query = query.startAfter(cursor);

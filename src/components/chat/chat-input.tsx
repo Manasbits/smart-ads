@@ -56,10 +56,10 @@ export function ChatInput({
   return (
     <div className="relative">
       {slashMenu}
-      <div className="p-4">
+      <div className="px-2 pb-3 pt-2">
       <div
         className={cn(
-          "flex items-end gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-3",
+          "flex items-end gap-2 rounded-2xl border border-border bg-muted/30 px-3 py-2.5",
           "focus-within:ring-1 focus-within:ring-ring/50 transition-all duration-200"
         )}
       >

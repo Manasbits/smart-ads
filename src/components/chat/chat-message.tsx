@@ -49,7 +49,7 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        "flex gap-3 py-4 px-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
+        "flex gap-3 px-2 py-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
         isUser ? "justify-end" : "justify-start"
       )}
     >
@@ -63,7 +63,7 @@ export function ChatMessage({
 
       <div
         className={cn(
-          "max-w-[85%] md:max-w-[75%]",
+          "max-w-[92%] md:max-w-[88%]",
           isUser ? "order-first" : ""
         )}
       >
@@ -109,10 +109,10 @@ export function ChatMessage({
         {textContent && (
           <div
             className={cn(
-              "rounded-2xl text-sm leading-relaxed",
+              "text-sm leading-relaxed",
               isUser
-                ? "bg-primary text-primary-foreground px-4 py-2.5"
-                : "text-foreground"
+                ? "rounded-2xl bg-primary text-primary-foreground px-4 py-2.5"
+                : "text-foreground px-0.5"
             )}
           >
             {isUser ? (

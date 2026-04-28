@@ -35,7 +35,7 @@ export const maxDuration = 300;
 export const POST = withAuth(async (req, { userId }) => {
   try {
     const body = await req.json();
-    const { messages, conversationId, workspaceId, activeAccounts, forcedSkill } = body;
+    const { messages, conversationId, activeAccounts, forcedSkill } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -74,7 +74,6 @@ export const POST = withAuth(async (req, { userId }) => {
       activeConversationId = await createConversation(
         userId,
         title,
-        workspaceId || null,
         activeAccounts
       );
     }
@@ -166,7 +165,6 @@ export const POST = withAuth(async (req, { userId }) => {
               userMessage: userText,
               assistantMessage: text,
               scopeId: scopeId || null,
-              workspaceId: workspaceId || null,
             }).catch(() => {});
           }
         } catch (err) {

@@ -11,7 +11,6 @@ import {
   Plus,
   MessageSquare,
   Settings,
-  Layers,
   ChevronLeft,
 } from "lucide-react";
 import type { Conversation } from "@/types";
@@ -97,17 +96,6 @@ function SidebarContent({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/workspaces")}
-            className={cn(
-              "h-9 w-9 text-muted-foreground hover:text-foreground",
-              pathname === "/workspaces" && "bg-accent text-foreground"
-            )}
-          >
-            <Layers className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={() => router.push("/settings")}
             className={cn(
               "h-9 w-9 text-muted-foreground hover:text-foreground",
@@ -164,17 +152,6 @@ function SidebarContent({
       {/* Bottom nav */}
       <div className="p-2 space-y-0.5">
         <Separator className="mb-2" />
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/workspaces")}
-          className={cn(
-            "w-full justify-start gap-2 h-9 text-sm text-muted-foreground hover:text-foreground",
-            pathname === "/workspaces" && "bg-accent text-foreground"
-          )}
-        >
-          <Layers className="h-4 w-4" />
-          Workspaces
-        </Button>
         <Button
           variant="ghost"
           onClick={() => router.push("/settings")}

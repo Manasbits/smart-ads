@@ -5,9 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useAuthContext } from "@/components/providers/auth-provider";
-import { useUIStore } from "@/stores/ui-store";
 import { Loader2 } from "lucide-react";
-import type { Conversation, Workspace } from "@/types";
+import type { Conversation } from "@/types";
 
 export default function DashboardLayout({
   children,
@@ -17,10 +16,8 @@ export default function DashboardLayout({
   const { user, loading: authLoading } = useAuthContext();
   const router = useRouter();
   const pathname = usePathname();
-  const activeWorkspaceId = useUIStore((s) => s.activeWorkspaceId);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Extract active conversation ID from path
@@ -30,28 +27,18 @@ export default function DashboardLayout({
 
   const fetchData = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (activeWorkspaceId) params.set("workspaceId", activeWorkspaceId);
-
-      const [convRes, wsRes] = await Promise.all([
-        fetch(`/api/conversations?${params}`),
-        fetch("/api/workspaces"),
-      ]);
+      const convRes = await fetch("/api/conversations");
 
       if (convRes.ok) {
         const data = await convRes.json();
         setConversations(data.conversations || []);
-      }
-      if (wsRes.ok) {
-        const data = await wsRes.json();
-        setWorkspaces(data.workspaces || []);
       }
     } catch {
       // Silently handle — data will just be empty
     } finally {
       setLoading(false);
     }
-  }, [activeWorkspaceId]);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -83,7 +70,7 @@ export default function DashboardLayout({
         onNewChat={handleNewChat}
       />
       <div className="flex flex-col flex-1 min-w-0">
-        <Topbar workspaces={workspaces} />
+        <Topbar />
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>
     </div>

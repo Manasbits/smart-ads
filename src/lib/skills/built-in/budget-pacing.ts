@@ -32,5 +32,5 @@ Analyze how campaigns are pacing against their budget targets and recommend real
 ## Output Format
 - Pacing summary table: Campaign | Budget | Spent | Pacing % | Status
 - Reallocation recommendations with specific amounts
-- Use a \`\`\`chart block for spend pacing visualization`,
+- Keep output markdown-only (use a pacing table instead of charts)`,
 };

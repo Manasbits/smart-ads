@@ -34,6 +34,6 @@ Compare ROAS across campaigns and ad sets to identify optimization opportunities
 
 ## Output Format
 - ROAS leaderboard table with budget allocation
-- Chart: ROAS vs Spend scatter (bar chart by campaign)
+- Keep output markdown-only with compact tables for ROAS vs spend comparison
 - Specific scaling/pausing recommendations`,
 };

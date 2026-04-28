@@ -61,9 +61,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     `- Be concise but thorough. Lead with the key insight, then supporting data.`
   );
 
-  parts.push(
-    `\nChart rendering: When you want to display data as a chart, emit a fenced code block with language "chart" containing only this JSON (no extra keys, no markdown around it):\n{"type":"bar|line|pie","title":"Chart title","data":[{"name":"Label","value":123}],"xKey":"name","yKey":"value"}\nUse "bar" for comparisons, "line" for time series, "pie" for share breakdowns.`
-  );
+  parts.push(`- Respond using clear markdown only. Do not output chart or mermaid code blocks.`);
 
   return parts.join("\n");
 }
