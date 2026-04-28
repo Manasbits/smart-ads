@@ -10,7 +10,7 @@ interface RichMarkdownProps {
 
 export function RichMarkdown({ content }: RichMarkdownProps) {
   return (
-    <div className="prose prose-invert prose-sm max-w-none leading-relaxed prose-p:my-2 prose-headings:mb-2 prose-headings:mt-4 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-blockquote:border-l-border prose-blockquote:text-muted-foreground">
+    <div className="prose prose-sm dark:prose-invert max-w-none leading-7 prose-p:my-4 prose-headings:scroll-m-20 prose-headings:font-semibold prose-headings:text-foreground prose-h1:mt-8 prose-h1:mb-4 prose-h1:text-2xl prose-h2:mt-7 prose-h2:mb-3 prose-h2:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-lg prose-h4:mt-5 prose-h4:mb-2 prose-h4:text-base prose-ul:my-4 prose-ol:my-4 prose-li:my-1.5 prose-hr:my-6 prose-blockquote:my-4 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground prose-code:text-emerald-600 dark:prose-code:text-emerald-400 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border prose-blockquote:border-l-border prose-blockquote:text-muted-foreground">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

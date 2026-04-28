@@ -23,7 +23,7 @@ export async function createOrUpdateUser(user: {
       createdAt: Timestamp.now(),
       lastLoginAt: Timestamp.now(),
       defaultWorkspaceId: null,
-      settings: { theme: "dark" },
+      settings: { theme: "light" },
     });
   }
 }

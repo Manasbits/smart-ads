@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/auth-provider";
+import { useTheme } from "@/components/providers/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -10,10 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, Moon, Sun } from "lucide-react";
 
 export function UserMenu() {
   const { user, signOut } = useAuthContext();
+  const { theme, toggleTheme } = useTheme();
   const router = useRouter();
 
   const initials = user?.displayName
@@ -55,6 +57,14 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => router.push("/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={toggleTheme}>
+          {theme === "dark" ? (
+            <Sun className="mr-2 h-4 w-4" />
+          ) : (
+            <Moon className="mr-2 h-4 w-4" />
+          )}
+          {theme === "dark" ? "Light mode" : "Dark mode"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
