@@ -49,6 +49,7 @@ export interface Conversation {
   id: string;
   userId: string;
   title: string;
+  isStarred?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   status: "active" | "archived";

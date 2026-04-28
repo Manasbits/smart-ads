@@ -1,7 +1,6 @@
 import { adminDb } from "@/lib/firebase/admin";
 import {
   Timestamp,
-  FieldValue,
   type DocumentSnapshot,
 } from "firebase-admin/firestore";
 import type {
@@ -30,6 +29,7 @@ export async function createConversation(
   const docRef = await conversationsRef().add({
     userId,
     title,
+    isStarred: false,
     status: "active",
     activeAccountContext: activeAccountContext ?? {
       metaAdsAccountId: null,
@@ -75,7 +75,7 @@ export async function listConversations(
 
   const conversations = snapshot.docs.map(
     (doc) => ({ id: doc.id, ...doc.data() }) as Conversation & { id: string }
-  );
+  ).filter((c) => c.status !== "archived");
 
   const lastDoc =
     snapshot.docs.length > 0
@@ -106,6 +106,13 @@ export async function updateConversation(
       ...data,
       updatedAt: Timestamp.now(),
     });
+}
+
+export async function archiveConversation(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  await updateConversation(conversationId, userId, { status: "archived" });
 }
 
 // ---------------------------------------------------------------------------

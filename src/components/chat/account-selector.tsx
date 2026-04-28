@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Link as LinkIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type { ConnectedAccount } from "@/types";
 
 interface AccountSelectorProps {
@@ -18,12 +17,12 @@ interface AccountSelectorProps {
 }
 
 export function AccountSelector({ connectedAccounts }: AccountSelectorProps) {
-  const router = useRouter();
   const {
     activeMetaAdsAccountId,
     setActiveMetaAdsAccountId,
     activeShopifyStoreId,
     setActiveShopifyStoreId,
+    setActiveShellView,
   } = useUIStore();
 
   const metaAccounts = connectedAccounts.filter(
@@ -39,7 +38,7 @@ export function AccountSelector({ connectedAccounts }: AccountSelectorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/settings")}
+          onClick={() => setActiveShellView("integrations")}
           className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5"
         >
           <LinkIcon className="h-3 w-3" />

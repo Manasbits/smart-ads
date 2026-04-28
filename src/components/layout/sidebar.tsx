@@ -1,17 +1,26 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
+import { SidebarProfileMenu } from "@/components/layout/sidebar-profile-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Plus,
   MessageSquare,
-  Settings,
   ChevronLeft,
+  MoreHorizontal,
+  Pencil,
+  Star,
+  Trash2,
 } from "lucide-react";
 import type { Conversation } from "@/types";
 
@@ -19,52 +28,44 @@ interface SidebarProps {
   conversations: Conversation[];
   activeConversationId?: string;
   onNewChat: () => void;
+  onSelectConversation: (id: string) => void;
+  onRenameConversation: (id: string, title: string) => void;
+  onToggleStarConversation: (id: string, isStarred: boolean) => void;
+  onDeleteConversation: (id: string) => void;
 }
 
-function groupConversations(conversations: Conversation[]) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today.getTime() - 86400000);
-  const weekAgo = new Date(today.getTime() - 7 * 86400000);
-
-  const groups: { label: string; items: Conversation[] }[] = [
-    { label: "Today", items: [] },
-    { label: "Yesterday", items: [] },
-    { label: "Previous 7 Days", items: [] },
-    { label: "Older", items: [] },
-  ];
-
-  for (const conv of conversations) {
-    // updatedAt can be a Firestore Timestamp, ISO string, or epoch
-    const raw = conv.updatedAt;
-    const date = raw
-      ? typeof raw === "string"
-        ? new Date(raw)
-        : typeof raw === "object" && "_seconds" in raw
-          ? new Date((raw as { _seconds: number })._seconds * 1000)
-          : raw?.toDate?.()
-            ? raw.toDate()
-            : new Date(0)
-      : new Date(0);
-    if (date >= today) groups[0].items.push(conv);
-    else if (date >= yesterday) groups[1].items.push(conv);
-    else if (date >= weekAgo) groups[2].items.push(conv);
-    else groups[3].items.push(conv);
+function toMillis(raw: unknown): number {
+  if (!raw) return 0;
+  if (typeof raw === "string") return new Date(raw).getTime();
+  if (typeof raw === "object" && raw !== null && "_seconds" in raw) {
+    return (raw as { _seconds: number })._seconds * 1000;
   }
-
-  return groups.filter((g) => g.items.length > 0);
+  if (
+    typeof raw === "object" &&
+    raw !== null &&
+    "toDate" in raw &&
+    typeof (raw as { toDate?: () => Date }).toDate === "function"
+  ) {
+    return (raw as { toDate: () => Date }).toDate().getTime();
+  }
+  return 0;
 }
 
 function SidebarContent({
   conversations,
   activeConversationId,
   onNewChat,
+  onSelectConversation,
+  onRenameConversation,
+  onToggleStarConversation,
+  onDeleteConversation,
   collapsed,
 }: SidebarProps & { collapsed: boolean }) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const groups = groupConversations(conversations);
+  const sortedConversations = [...conversations].sort(
+    (a, b) => toMillis(b.updatedAt) - toMillis(a.updatedAt)
+  );
+  const starredConversations = sortedConversations.filter((c) => c.isStarred);
+  const recentConversations = sortedConversations.filter((c) => !c.isStarred);
 
   if (collapsed) {
     return (
@@ -83,7 +84,7 @@ function SidebarContent({
             key={conv.id}
             variant="ghost"
             size="icon"
-            onClick={() => router.push(`/chat/${conv.id}`)}
+            onClick={() => onSelectConversation(conv.id)}
             className={cn(
               "h-9 w-9 text-muted-foreground hover:text-foreground",
               activeConversationId === conv.id && "bg-accent text-foreground"
@@ -93,17 +94,7 @@ function SidebarContent({
           </Button>
         ))}
         <div className="mt-auto flex flex-col items-center gap-2 pb-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/settings")}
-            className={cn(
-              "h-9 w-9 text-muted-foreground hover:text-foreground",
-              pathname === "/settings" && "bg-accent text-foreground"
-            )}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          <SidebarProfileMenu collapsed />
         </div>
       </div>
     );
@@ -125,45 +116,123 @@ function SidebarContent({
 
       {/* Conversation list */}
       <ScrollArea className="flex-1 px-2">
-        {groups.map((group) => (
-          <div key={group.label} className="mb-4">
+        {starredConversations.length > 0 && (
+          <div className="mb-4">
             <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              {group.label}
+              Starred
             </p>
-            {group.items.map((conv) => (
-              <button
+            {starredConversations.map((conv) => (
+              <ConversationRow
                 key={conv.id}
-                onClick={() => router.push(`/chat/${conv.id}`)}
-                className={cn(
-                  "w-full text-left px-2 py-1.5 rounded-lg text-sm truncate",
-                  "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-                  "transition-colors duration-150",
-                  activeConversationId === conv.id &&
-                    "bg-accent text-foreground border-l-2 border-primary"
-                )}
-              >
-                {conv.title || "New conversation"}
-              </button>
+                conversation={conv}
+                active={activeConversationId === conv.id}
+                onSelect={onSelectConversation}
+                onRename={onRenameConversation}
+                onToggleStar={onToggleStarConversation}
+                onDelete={onDeleteConversation}
+              />
             ))}
           </div>
-        ))}
+        )}
+
+        <div className="mb-4">
+          <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+            Recents
+          </p>
+          {recentConversations.map((conv) => (
+            <ConversationRow
+              key={conv.id}
+              conversation={conv}
+              active={activeConversationId === conv.id}
+              onSelect={onSelectConversation}
+              onRename={onRenameConversation}
+              onToggleStar={onToggleStarConversation}
+              onDelete={onDeleteConversation}
+            />
+          ))}
+        </div>
       </ScrollArea>
 
       {/* Bottom nav */}
       <div className="p-2 space-y-0.5">
         <Separator className="mb-2" />
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/settings")}
-          className={cn(
-            "w-full justify-start gap-2 h-9 text-sm text-muted-foreground hover:text-foreground",
-            pathname === "/settings" && "bg-accent text-foreground"
-          )}
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </Button>
+        <SidebarProfileMenu collapsed={false} />
       </div>
+    </div>
+  );
+}
+
+function ConversationRow({
+  conversation,
+  active,
+  onSelect,
+  onRename,
+  onToggleStar,
+  onDelete,
+}: {
+  conversation: Conversation;
+  active: boolean;
+  onSelect: (id: string) => void;
+  onRename: (id: string, title: string) => void;
+  onToggleStar: (id: string, isStarred: boolean) => void;
+  onDelete: (id: string) => void;
+}) {
+  const title = conversation.title || "New conversation";
+  const isStarred = !!conversation.isStarred;
+
+  const handleRename = () => {
+    const nextTitle = window.prompt("Rename chat", title);
+    if (!nextTitle) return;
+    const trimmed = nextTitle.trim();
+    if (!trimmed || trimmed === title) return;
+    onRename(conversation.id, trimmed);
+  };
+
+  const handleDelete = () => {
+    const ok = window.confirm(`Delete "${title}"?`);
+    if (ok) onDelete(conversation.id);
+  };
+
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-1 rounded-lg px-2 py-1.5",
+        "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+        "transition-colors duration-150",
+        active && "bg-accent text-foreground border-l-2 border-primary"
+      )}
+    >
+      <button
+        onClick={() => onSelect(conversation.id)}
+        className="min-w-0 flex-1 truncate text-left text-sm"
+      >
+        {title}
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          }
+        />
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem onClick={handleRename}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onToggleStar(conversation.id, !isStarred)}
+          >
+            <Star className="h-4 w-4 mr-2" />
+            {isStarred ? "Remove star" : "Add to stars"}
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useUIStore } from "@/stores/ui-store";
-import { UserMenu } from "@/components/layout/user-menu";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
 
@@ -9,7 +8,7 @@ export function Topbar() {
   const { sidebarOpen, toggleSidebar, setMobileNavOpen } = useUIStore();
 
   return (
-    <header className="flex items-center justify-between h-14 px-4 border-b border-border bg-background">
+    <header className="flex items-center h-14 px-4 border-b border-border bg-background">
       <div className="flex items-center gap-2">
         {/* Sidebar toggle — only show on desktop when collapsed, always on mobile */}
         <Button
@@ -39,8 +38,6 @@ export function Topbar() {
           </Button>
         )}
       </div>
-
-      <UserMenu />
     </header>
   );
 }

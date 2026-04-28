@@ -12,6 +12,12 @@ interface UIState {
   setActiveMetaAdsAccountId: (id: string | null) => void;
   activeShopifyStoreId: string | null;
   setActiveShopifyStoreId: (id: string | null) => void;
+  activeShellView: "chat" | "integrations" | "skills" | "profile";
+  setActiveShellView: (
+    view: "chat" | "integrations" | "skills" | "profile"
+  ) => void;
+  selectedConversationId: string | null;
+  setSelectedConversationId: (id: string | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -24,4 +30,8 @@ export const useUIStore = create<UIState>((set) => ({
   setActiveMetaAdsAccountId: (id) => set({ activeMetaAdsAccountId: id }),
   activeShopifyStoreId: null,
   setActiveShopifyStoreId: (id) => set({ activeShopifyStoreId: id }),
+  activeShellView: "chat",
+  setActiveShellView: (view) => set({ activeShellView: view }),
+  selectedConversationId: null,
+  setSelectedConversationId: (id) => set({ selectedConversationId: id }),
 }));
