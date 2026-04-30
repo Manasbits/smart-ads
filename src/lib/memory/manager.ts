@@ -10,6 +10,9 @@ const EXTRACTION_PROMPT = `Analyze this conversation turn and extract any of the
 - Business insights (performance data, trends, anomalies the user discussed)
 - User preferences (reporting style, favorite metrics, thresholds they mentioned)
 - Strategic decisions (pausing campaigns, budget changes, targeting shifts)
+- Scaling goals: explicit north-star metrics (e.g., target CPA, ROAS floor, revenue goal, lead volume targets)
+- Runway: total budget and/or time horizon they stated for testing or scaling on Meta
+- Attribution or measurement preferences they stated (e.g., click vs view windows they trust, blended vs platform-only reporting)
 
 Return ONLY valid JSON with no markdown formatting: { "memories": [{ "category": "business_context" | "preference" | "insight", "content": "concise summary" }] }
 If nothing worth remembering, return: { "memories": [] }`;

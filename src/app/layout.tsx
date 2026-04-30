@@ -12,9 +12,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SmartAds - AI Marketing Assistant",
+  title: "SmartAds — Meta + Shopify for DTC teams",
   description:
-    "AI-powered assistant for Meta Ads and Shopify e-commerce marketing",
+    "Chat with your Meta Ads and Shopify data in one place. Built for DTC founders scaling with a simple system — not another pile of dashboards.",
 };
 
 export default function RootLayout({

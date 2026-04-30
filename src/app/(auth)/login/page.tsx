@@ -35,7 +35,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">SmartAds</h1>
           <p className="text-sm text-muted-foreground">
-            AI-powered Meta Ads & Shopify assistant
+            Meta + Shopify in one chat — for DTC brands scaling with clarity.
           </p>
         </div>
 

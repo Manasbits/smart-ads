@@ -2,37 +2,50 @@ import type { Skill } from '../types';
 
 export const adCreativeReviewSkill: Omit<Skill, 'source'> = {
   name: 'ad-creative-review',
-  description: 'Creative performance breakdown and A/B test insights across Meta Ads.',
-  content: `# Ad Creative Review
+  description:
+    'Creative portfolio review: hook vs trust vs close assets, copy ↔ LP continuity, flexible testing, and frequency-by-day fatigue signals.',
+  content: `# Ad Creative Review (SmartAds methodology)
 
 ## Purpose
-Analyze creative performance to identify winning creatives and inform future creative strategy.
+Review creative like a **coach building a team**, not chasing a single unicorn ad. Map assets to **psychological jobs** in the journey. Encourage **flexible / dynamic** testing where it fits so Meta can route combinations.
+
+## Roles to tag (conceptual)
+
+| Role | Job | Notes |
+|------|-----|-------|
+| Attention / motion (often vertical video) | Earn the stop & explain *why care* | Hooks, pattern breaks, speed of idea |
+| Proof / testimonial | Build trust & social proof | Faces, quotes, before/after responsibly |
+| Offer / clarity (often square or static-feeling) | Crush objections & show *what it is* | Specs, stacks, price, guarantee, comparison |
+
+An ad can blend roles; label primary + secondary when mixed.
 
 ## Steps to Follow
 
-### 1. Fetch Ad-Level Data
-- Get all active ads with spend, impressions, clicks, CTR, CPC, and conversions
-- Include ad creative details (image/video, headline, body text)
+### 1. Pull ad-level diagnostics
+Spend, impressions, outbound CTR signals (or link CTR when relevant), CPM, conversions or purchase volume, **frequency**—prefer **delivery breakdown by day** for frequency when diagnosing saturation vs fresh reach.
 
-### 2. Performance Ranking
-- Rank ads by CTR, CPC, and conversion rate
-- Identify the top 3 and bottom 3 performing creatives
+### 2. Rank with context
+Leaderboards are fine, but annotate **spend share** and portfolio role. A modest-CTR unit may still be buying irreplaceable cheap reach.
 
-### 3. Fatigue Analysis
-- Flag ads with frequency > 3 as potentially fatigued
-- Compare CTR trend: are high-frequency ads showing declining CTR?
+### 3. Fatigue & quality (no single threshold)
+Flag **deteriorating** performance when **frequency climbs** with **worsening CTR and/or rising CPA/CPM** over similar windows— not a magic number like 3 impressions lifetime.
 
-### 4. A/B Insights
-- Identify ad sets running multiple creatives (A/B tests)
-- Declare winners based on statistical performance differences
-- Recommend pausing underperformers
+### 4. Copy continuity audit
+For text you can read:
+- **Primary text**: strong idea in first ~125 chars; depth after "see more."
+- **Headline**: tight bridge from visual to offer (short; remember some surfaces hide headlines).
+- Tone & promise should **match adjacent landing sections** the user would see first.
 
-### 5. Creative Patterns
-- What do winning creatives have in common? (format, tone, offer)
-- What are losing creatives missing?
+### 5. CTA discipline
+Default to standard Meta CTAs aligned to intent (Shop now, Learn more, Sign up, Apply now, etc.). Novel CTAs are rarely the unlock versus offer-creative-LP alignment.
+
+### 6. Flexible / dynamic testing guidance
+If they run single static forever, suggest **small matrices**: several hooks × a few primary texts / headlines so the system can learn pairings—align with their resources.
 
 ## Output Format
-- Creative performance table: Ad Name | Spend | CTR | CPC | Frequency | Status
-- Winner/loser summary
-- Creative strategy recommendations`,
+
+- **Coach opener** on creative bottlenecks to scale
+- Markdown table: Ad | Spend | Role guess | CTR / CPM / CPA cues | Frequency (daily lens) | Verdict |
+- **Two-test focus**: which weakest link creatives or copy variants to replace first  
+Keep markdown-only.`,
 };
